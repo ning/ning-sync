@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{{ network_name }}
+{% endblock %}
+
+{% block content %}
+	<h2>{{ network_name }}</h2>
+	
+	<h3>Authorization</h3>
+	<ol>
+		<li><a href="/auth/admin/new">Add your credentials</a></li>
+		<li><a href="/auth/admin/view">View your credentials</a></li>
+	</ol>
+	
+    <h3>Blog Feeds</h3>
+    <ol>
+        <li><a href="/blogs/admin/new">Add a feed</a></li>
+        <li><a href="/blogs/admin/view">View your feeds</a></li>
+    </ol>
+{% endblock %}

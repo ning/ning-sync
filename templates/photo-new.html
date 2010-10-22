@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Add a photo feed
+{% endblock %}
+
+{% block content %}
+	<h2>Add a photo feed</h2>
+	{% if success %}
+	<p>Feed added!</p>
+	{% endif %}
+	
+	<p>Only <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a> feeds are supported. The photo must be included using an &lt;enclosure&gt; tag to work properly.</p>
+	
+    <form action="/photos/admin/new" method="post">
+		<fieldset>
+		  <legend>Photo Feed Details</legend>
+		  <ul>
+		    <li>
+		      <label for="url">Photo Feed URL<em>*</em></label>
+		      <input id="url" name="url" type="text" size="100"/>
+		    </li>
+		  </ul>
+		</fieldset>
+		<input id="submit" type="submit" value="Add feed"/>
+    </form>
+{% endblock %}

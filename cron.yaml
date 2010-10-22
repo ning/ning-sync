@@ -1,0 +1,4 @@
+cron:
+- description: Check feeds for updates
+  url: /blogs/feed/producer
+  schedule: every 5 minutes

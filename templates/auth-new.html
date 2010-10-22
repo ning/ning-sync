@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Authorize
+{% endblock %}
+
+{% block content %}
+	<h2>Authorize</h2>
+	{% if success %}
+	<p>Credentials added!</p>
+	{% endif %}
+	
+    <form action="/auth/admin/new" method="post">
+		<fieldset>
+		  <legend>Feed Details</legend>
+		  <ul>
+		    <li>
+		      <label for="email">Email</label>
+		      <input id="email" name="email" type="text" size="20"/>
+		    </li>
+		    <li>
+		      <label for="password">Password</label>
+		      <input id="password" name="password" type="password" size="20"/>
+		    </li>
+		  </ul>
+		</fieldset>
+		<input id="submit" type="submit" value="Add Credentials"/>
+    </form>
+{% endblock %}

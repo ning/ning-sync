@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}
+View credentials
+{% endblock %}
+
+{% block content %}
+	<h2>View credentials</h2>
+	<ol>
+	{% for credential in credentials %}
+		<li>
+			<dl>
+				<dt>Email:</dt>
+				    <dd>{{ credential.email }}</dd>
+				<dt>Key:</dt>
+				    <dd>{{ credential.token_key }}</dd>
+				<dt>Secret:</dt>
+				    <dd>{{ credential.token_secret }}</dd>
+			</dl>
+		</li>
+	{% endfor %}
+	</ol>
+{% endblock %}

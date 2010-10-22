@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}
+Add a content feed
+{% endblock %}
+
+{% block content %}
+	<h2>Add a content feed</h2>
+	{% if success %}
+	<p>Content Feed added!</p>
+	{% endif %}
+	
+	<p>Both <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a> and and <a href="http://en.wikipedia.org/wiki/RSS">RSS</a> feeds are supported.</p>
+	
+    <form action="/blogs/admin/new" method="post">
+		<fieldset>
+		  <legend>Content Feed Details</legend>
+		  <ul>
+		    <li>
+		      <label for="url">Content Feed URL<em>*</em></label>
+		      <input id="url" name="url" type="text" size="100"/>
+		    </li>
+		  </ul>
+		</fieldset>
+		<input id="submit" type="submit" value="Add feed"/>
+    </form>
+{% endblock %}
