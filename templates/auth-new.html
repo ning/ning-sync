@@ -11,7 +11,7 @@ Authorize
     {% endif %}
     
     {% if failure %}
-    <p class="failure">Unable to authorize: {{ failure }}</p>
+    <p class="failure">{{ failure }}</p>
     {% endif %}
 	
     <form action="/auth/admin/new" method="post">

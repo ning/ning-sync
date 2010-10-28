@@ -49,7 +49,17 @@ class FeedConfig(webapp.RequestHandler):
 
         feed_url = self.request.get("url", None)
 
-        feed = ContentFeed(url=feed_url, owner=users.get_current_user())
+        try:
+            feed = ContentFeed(url=feed_url, owner=users.get_current_user())
+        except db.BadValueError, e:
+            template_values = {
+                "failure": str(e)
+            }
+            path = os.path.join(os.path.dirname(__file__),
+                'templates/blog-new.html')
+            self.response.out.write(template.render(path, template_values))
+            return
+        
         feed.put()
         logging.info("Added new feed: \"%s\"", feed_url)
         self.redirect("/blogs/admin/new?success=1")

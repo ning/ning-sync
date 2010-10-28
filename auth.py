@@ -26,24 +26,34 @@ class AuthConfig(webapp.RequestHandler):
 
     def get(self):
         """Display a template for adding credentials"""
-        template_values = {
-            "success": self.request.get("success", False)}
-
         current_user = users.get_current_user()
 
         query = Credential.all().filter("owner =", current_user)
         if query.count() > 0:
             logging.warn("%s already authorized" % current_user.email())
-            path = os.path.join(os.path.dirname(__file__),
-                'templates/auth-error.html')
-            template_values = {"error_message":
-                "You have already authorized this application. " +
-                "<a href='/auth/admin/view'>View existing?</a>"}
-            self.response.out.write(template.render(path, template_values))
+            self.redirect("/auth/admin/view?failure=authorized")
             return
 
+        error_code = self.request.get("failure", False)
+        if error_code == False:
+            error_message = None
+        elif error_code == "unauthorized":
+            error_message = "You must first authorize the application"
+        elif error_code == "missing":
+            error_message = "Enter an email address and password"
+        elif error_code == "1-23":
+            error_message = "Invalid email address"
+        elif error_code == "1-24":
+            error_message = "Invalid password"
+        else:
+            error_message = "Unknown error"
+    
         path = os.path.join(os.path.dirname(__file__),
             'templates/auth-new.html')
+        template_values = {
+            "failure": error_message,
+            "success": self.request.get("success", False)
+        }
         self.response.out.write(template.render(path, template_values))
 
     def post(self):
@@ -52,7 +62,7 @@ class AuthConfig(webapp.RequestHandler):
         password = self.request.get("password", None)
         if not email or not password:
             logging.error("Missing email or password")
-            self.redirect("/auth/admin/new?fail=1")
+            self.redirect("/auth/admin/new?failure=missing")
             return
 
         token = None
@@ -61,12 +71,13 @@ class AuthConfig(webapp.RequestHandler):
             token = ning_client.login(email, password)
         except NingError, e:
             logging.error("Unable to get token: %s" % str(e))
-            self.redirect("/auth/admin/new?fail=1")
+            self.redirect("/auth/admin/new?failure=%s-%s" % (e.error_code,
+                e.error_subcode))
             return
 
         if not token:
             logging.error("Can't add credntials: Missing token")
-            self.redirect("/auth/admin/new?fail=1")
+            self.redirect("/auth/admin/new?failure=1")
             return
 
         cred = Credential(token_key=token.key, token_secret=token.secret,
@@ -81,11 +92,19 @@ class AuthConfig(webapp.RequestHandler):
 class AuthBrowser(webapp.RequestHandler):
 
     def get(self):
-        """Display the list of feeds"""
+        """Display the list of credentials"""
 
         credentials = []
         current_user = users.get_current_user()
         query = Credential.all().filter("owner =", current_user)
+        
+        error_code = self.request.get("failure", False)
+        if error_code == False:
+            error_message = None
+        elif error_code == "authorized":
+            error_message = "You have already authorized this application"
+        else:
+            error_message = "Unknown error"
 
         for credential in query:
             credentials.append({
@@ -96,7 +115,11 @@ class AuthBrowser(webapp.RequestHandler):
 
             path = os.path.join(os.path.dirname(__file__),
                 'templates/auth-browse.html')
-            template_values = {"credentials": credentials}
+            template_values = {
+                "credentials": credentials,
+                "failure": error_message,
+                "success": self.request.get("success", False)
+            }
             self.response.out.write(template.render(path, template_values))
             return
 
@@ -110,7 +133,7 @@ def require_credentials(func):
         if query.count() != 1:
             logging.warning("%s missing credentials, redirecting" %
                 current_user.email())
-            self.redirect("/auth/admin/new?unauthorized=1")
+            self.redirect("/auth/admin/new?failure=unauthorized")
             return
         else:
             func(self, *args, **kw)

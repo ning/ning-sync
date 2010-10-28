@@ -6,6 +6,15 @@ View credentials
 
 {% block content %}
 	<h2>View credentials</h2>
+	
+	{% if success %}
+    <p class="success">Credentials added!</p>
+    {% endif %}
+    
+    {% if failure %}
+    <p class="failure">{{ failure }}</p>
+    {% endif %}
+    
 	<ol>
 	{% for credential in credentials %}
 		<li>
