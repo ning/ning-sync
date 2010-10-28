@@ -6,9 +6,13 @@ Add a photo feed
 
 {% block content %}
 	<h2>Add a photo feed</h2>
-	{% if success %}
-	<p>Feed added!</p>
-	{% endif %}
+    {% if success %}
+    <p class="success">Feed added!</p>
+    {% endif %}
+    
+    {% if failure %}
+    <p class="failure">Unable to authorize: {{ failure }}</p>
+    {% endif %}
 	
 	<p>Only <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a> feeds are supported. The photo must be included using an &lt;enclosure&gt; tag to work properly.</p>
 	
@@ -22,6 +26,6 @@ Add a photo feed
 		    </li>
 		  </ul>
 		</fieldset>
-		<input id="submit" type="submit" value="Add feed"/>
+		<input id="submit" class="button" type="submit" value="Add feed"/>
     </form>
 {% endblock %}

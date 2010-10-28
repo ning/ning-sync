@@ -6,9 +6,13 @@ Authorize
 
 {% block content %}
 	<h2>Authorize</h2>
-	{% if success %}
-	<p>Credentials added!</p>
-	{% endif %}
+    {% if success %}
+    <p class="success">Credentials added!</p>
+    {% endif %}
+    
+    {% if failure %}
+    <p class="failure">Unable to authorize: {{ failure }}</p>
+    {% endif %}
 	
     <form action="/auth/admin/new" method="post">
 		<fieldset>
@@ -24,6 +28,6 @@ Authorize
 		    </li>
 		  </ul>
 		</fieldset>
-		<input id="submit" type="submit" value="Add Credentials"/>
+		<input id="submit" class="button" type="submit" value="Add Credentials"/>
     </form>
 {% endblock %}

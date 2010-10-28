@@ -6,9 +6,14 @@ Add a content feed
 
 {% block content %}
 	<h2>Add a content feed</h2>
-	{% if success %}
-	<p>Content Feed added!</p>
-	{% endif %}
+
+    {% if success %}
+    <p class="success">Feed added!</p>
+    {% endif %}
+    
+    {% if failure %}
+    <p class="failure">Unable to authorize: {{ failure }}</p>
+    {% endif %}
 	
 	<p>Both <a href="http://en.wikipedia.org/wiki/Atom_%28standard%29">Atom</a> and and <a href="http://en.wikipedia.org/wiki/RSS">RSS</a> feeds are supported.</p>
 	
@@ -22,6 +27,6 @@ Add a content feed
 		    </li>
 		  </ul>
 		</fieldset>
-		<input id="submit" type="submit" value="Add feed"/>
+		<input id="submit" class="button" type="submit" value="Add feed"/>
     </form>
 {% endblock %}
