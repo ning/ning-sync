@@ -219,7 +219,7 @@ class FeedConsumer(webapp.RequestHandler):
             }
             logging.info("Queued: \"%s\" @ %s" % (entry.title,
                 entry_datetime.ctime()))
-            taskqueue.add(url="/blogs/photo/consumer",
+            taskqueue.add(url="/blogs/entry/consumer",
                 params=blog_consumer_params)
 
 
@@ -262,7 +262,7 @@ def main():
     application = webapp.WSGIApplication([
             ('/blogs/feed/producer', FeedProducer),
             ('/blogs/feed/consumer', FeedConsumer),
-            ('/blogs/photo/consumer', EntryConsumer),
+            ('/blogs/entry/consumer', EntryConsumer),
             ('/blogs/admin/new', FeedConfig),
             ('/blogs/admin/view', FeedBrowser),
         ],
