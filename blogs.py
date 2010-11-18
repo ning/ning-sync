@@ -243,7 +243,8 @@ class EntryConsumer(webapp.RequestHandler):
         blog_parts = {
             "title": title.encode("utf-8"),
             "description": description.encode("utf-8"),
-            "publishTime": unicode(publish_time.isoformat()).encode("utf-8")}
+            # "publishTime": unicode(publish_time.isoformat()).encode("utf-8")
+        }
 
         token = oauth.Token(key=key, secret=secret)
         ning_client = config.new_client(token)
