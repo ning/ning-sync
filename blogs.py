@@ -208,11 +208,16 @@ class FeedConsumer(webapp.RequestHandler):
 
             if entry_datetime < last_update:
                 break
+                
+            if (len(entry.content) > 0):
+                description = entry.content[0].value
+            else:
+                description = entry.description
 
             blog_consumer_params = {
                 "title": entry.title,
                 "description": '%s\n\n<a href="%s">Continue reading</a>' %
-                    (entry.description, entry.link),
+                    (description, entry.link),
                 "publishTime": entry_datetime.isoformat(),
                 "key": key,
                 "secret": secret,
