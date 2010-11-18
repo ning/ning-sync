@@ -59,7 +59,7 @@ class FeedConfig(webapp.RequestHandler):
                 'templates/blog-new.html')
             self.response.out.write(template.render(path, template_values))
             return
-        
+
         feed.put()
         logging.info("Added new feed: \"%s\"", feed_url)
         self.redirect("/blogs/admin/new?success=1")
@@ -124,7 +124,6 @@ class FeedProducer(webapp.RequestHandler):
             last_update = timeutils.add_utc_tzinfo(feed.last_update)
             feed_consumer_params = {
                 "url": feed.url,
-                "timestamp": last_update.isoformat(),
                 "key": cred.token_key,
                 "secret": cred.token_secret}
 
@@ -137,9 +136,6 @@ class FeedProducer(webapp.RequestHandler):
                 logging.info("Unable to queue feed: \"%s\"",
                     feed_consumer_params["url"])
                 return
-
-            feed.last_update = current_datetime
-            feed.put()
 
 
 class FeedConsumer(webapp.RequestHandler):
@@ -154,10 +150,6 @@ class FeedConsumer(webapp.RequestHandler):
         if not feed_url:
             logging.error("No feed URL provided")
             return
-        last_timestamp = self.request.get("timestamp", None)
-        if not last_timestamp:
-            logging.error("No timestamp provided")
-            return
         key = self.request.get("key", None)
         if not key:
             logging.error("Feed missing OAuth key")
@@ -167,7 +159,16 @@ class FeedConsumer(webapp.RequestHandler):
             logging.error("Feed missing OAuth secret")
             return
 
-        last_update = iso8601.parse_date(last_timestamp)
+        query = ContentFeed.all()
+        query.filter("url =", feed_url)
+        feed = query.get()
+
+        if not feed:
+            logging.error("Couldn't find feed in the DB \"%s\"" % feed_url)
+
+        logging.info("Dequeued feed: \"%s\"" % (feed_url))
+
+        last_update = timeutils.add_utc_tzinfo(feed.last_update)
         logging.info("Last processed feed on: %s" % last_update.ctime())
 
         try:
@@ -182,13 +183,12 @@ class FeedConsumer(webapp.RequestHandler):
              (result.status_code, feed_url))
             return
 
+        current_datetime = timeutils.now_utc()
+
         d = feedparser.parse(result.content)
         if not d.feed:
             logging.error("Unable to parse feed: \"%s\"" % feed_url)
             return
-
-        if d.feed.has_key("title"):
-            logging.info("Processing Feed: \"%s\"" % d.feed.title)
 
         for entry in d.entries:
             if not entry.has_key("updated_parsed"):
@@ -221,6 +221,9 @@ class FeedConsumer(webapp.RequestHandler):
                 entry_datetime.ctime()))
             taskqueue.add(url="/blogs/entry/consumer",
                 params=blog_consumer_params)
+
+        feed.last_update = current_datetime
+        feed.put()
 
 
 class EntryConsumer(webapp.RequestHandler):
