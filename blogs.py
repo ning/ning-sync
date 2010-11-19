@@ -209,7 +209,7 @@ class FeedConsumer(webapp.RequestHandler):
             if entry_datetime < last_update:
                 break
                 
-            if (len(entry.content) > 0):
+            if (entry.has_key("content") and len(entry.content) > 0):
                 description = entry.content[0].value
             else:
                 description = entry.description
@@ -247,11 +247,14 @@ class EntryConsumer(webapp.RequestHandler):
         description = self.request.get("description", None)
         key = self.request.get("key", None)
         secret = self.request.get("secret", None)
+        
+        logging.info("Dequeued: \"%s\" %s" % (title, publish_time.ctime()))
 
         blog_parts = {
             "title": title.encode("utf-8"),
             "description": description.encode("utf-8"),
-            "publishTime": unicode(publish_time.isoformat()).encode("utf-8")}
+            # "publishTime": unicode(publish_time.isoformat()).encode("utf-8")
+        }
 
         token = oauth.Token(key=key, secret=secret)
         ning_client = config.new_client(token)
@@ -260,10 +263,8 @@ class EntryConsumer(webapp.RequestHandler):
             ning_client.post("BlogPost", blog_parts)
         except NingError, e:
             logging.error("Unable to upload: %s" % str(e))
-            return
+            raise
 
-        logging.info("Dequeued: \"%s\" %s" % (blog_parts["title"],
-            publish_time.ctime()))
 
 
 def main():
