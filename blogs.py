@@ -222,10 +222,18 @@ class FeedConsumer(webapp.RequestHandler):
                 "key": key,
                 "secret": secret,
             }
+            
+            try:
+                taskqueue.add(url="/blogs/entry/consumer",
+                    params=blog_consumer_params)
+            except taskqueue.Error, e:
+                logging.info("Unable to queue entry: %s \"%s\"\n \"%s\"" %
+                    (str(e), blog_consumer_params["title"],
+                    blog_consumer_params["description"]))
+                continue
+            
             logging.info("Queued: \"%s\" @ %s" % (entry.title,
                 entry_datetime.ctime()))
-            taskqueue.add(url="/blogs/entry/consumer",
-                params=blog_consumer_params)
 
         feed.last_update = current_datetime
         feed.put()
