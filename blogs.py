@@ -227,7 +227,7 @@ class FeedConsumer(webapp.RequestHandler):
                 taskqueue.add(url="/blogs/entry/consumer",
                     params=blog_consumer_params)
             except taskqueue.Error, e:
-                logging.info("Unable to queue entry: %s \"%s\"\n \"%s\"" %
+                logging.error("Unable to queue entry: %s \"%s\"\n \"%s\"" %
                     (str(e), blog_consumer_params["title"],
                     blog_consumer_params["description"]))
                 continue
