@@ -216,7 +216,7 @@ class FeedConsumer(webapp.RequestHandler):
 
             blog_consumer_params = {
                 "title": entry.title,
-                "description": '%s\n\n<a href="%s">Continue reading</a>' %
+                "description": '%s\n\n<a href="%s">Original post</a>' %
                     (description, entry.link),
                 "publishTime": entry_datetime.isoformat(),
                 "key": key,
