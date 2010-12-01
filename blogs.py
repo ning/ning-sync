@@ -208,21 +208,32 @@ class FeedConsumer(webapp.RequestHandler):
 
             if entry_datetime < last_update:
                 break
-                
-            if (entry.has_key("content") and len(entry.content) > 0):
-                description = entry.content[0].value
+
+            if entry.has_key("content") and len(entry.content) > 0:
+                entry_content = entry.content[0].value
             else:
-                description = entry.description
+                entry_content = ""
+
+            if entry.has_key("description"):
+                entry_description = entry.description
+            else:
+                entry_description = ""
+
+            # Choose a body that has the most content
+            if len(entry_content) > len(entry_description):
+                body = entry_content
+            else:
+                body = entry_description
 
             blog_consumer_params = {
                 "title": entry.title,
                 "description": '%s\n\n<a href="%s">Original post</a>' %
-                    (description, entry.link),
+                    (body, entry.link),
                 "publishTime": entry_datetime.isoformat(),
                 "key": key,
                 "secret": secret,
             }
-            
+
             try:
                 taskqueue.add(url="/blogs/entry/consumer",
                     params=blog_consumer_params)
@@ -231,7 +242,7 @@ class FeedConsumer(webapp.RequestHandler):
                     (str(e), blog_consumer_params["title"],
                     blog_consumer_params["description"]))
                 continue
-            
+
             logging.info("Queued: \"%s\" @ %s" % (entry.title,
                 entry_datetime.ctime()))
 
@@ -255,7 +266,7 @@ class EntryConsumer(webapp.RequestHandler):
         description = self.request.get("description", None)
         key = self.request.get("key", None)
         secret = self.request.get("secret", None)
-        
+
         logging.info("Dequeued: \"%s\" %s" % (title, publish_time.ctime()))
 
         blog_parts = {
