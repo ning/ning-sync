@@ -207,7 +207,7 @@ class FeedConsumer(webapp.RequestHandler):
             entry_datetime = timeutils.struct_to_datetime(entry.updated_parsed)
 
             if entry_datetime < last_update:
-                logging.debug("Stopping processing with: \"%s\" @ " %
+                logging.debug("Stopping processing with: \"%s\" @ %s" %
                     (entry.title, entry_datetime.ctime()))
                 break
 
