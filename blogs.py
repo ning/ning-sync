@@ -133,7 +133,7 @@ class FeedProducer(webapp.RequestHandler):
                 logging.info("Queued feed: \"%s\" %s" %
                     (feed_consumer_params["url"], last_update.ctime()))
             except taskqueue.Error:
-                logging.info("Unable to queue feed: \"%s\"",
+                logging.error("Unable to queue feed: \"%s\"",
                     feed_consumer_params["url"])
                 return
 
@@ -169,7 +169,7 @@ class FeedConsumer(webapp.RequestHandler):
         logging.info("Dequeued feed: \"%s\"" % (feed_url))
 
         last_update = timeutils.add_utc_tzinfo(feed.last_update)
-        logging.info("Last processed feed on: %s" % last_update.ctime())
+        logging.debug("Last processed feed on: %s" % last_update.ctime())
 
         try:
             result = urlfetch.fetch(feed_url)
@@ -207,6 +207,8 @@ class FeedConsumer(webapp.RequestHandler):
             entry_datetime = timeutils.struct_to_datetime(entry.updated_parsed)
 
             if entry_datetime < last_update:
+                logging.debug("Stopping processing with: \"%s\" @ ", (entry.title,
+                    entry_datetime.ctime()))
                 break
 
             if entry.has_key("content") and len(entry.content) > 0:
