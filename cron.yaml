@@ -1,4 +1,8 @@
 cron:
-- description: Check feeds for updates
+- description: Check blog feeds for updates
   url: /blogs/feed/producer
+  schedule: every 5 minutes
+
+- description: Check for blog entries to upload
+  url: /blogs/entry/producer
   schedule: every 5 minutes

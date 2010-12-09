@@ -16,7 +16,6 @@ path = os.path.join(os.path.dirname(__file__), 'lib')
 sys.path.insert(0, path)
 
 import feedparser
-from iso8601 import iso8601
 from ningapi import NingError
 import oauth2 as oauth
 
@@ -29,6 +28,15 @@ class ContentFeed(db.Model):
     url = db.LinkProperty(required=True)
     last_update = db.DateTimeProperty(auto_now_add=True)
     owner = db.UserProperty(required=True)
+
+
+class ContentEntry(db.Model):
+    pub_date = db.DateTimeProperty(auto_now_add=True)
+    owner = db.UserProperty(required=True)
+    title = db.StringProperty(required=True)
+    description = db.TextProperty(required=True)
+    ning_id = db.StringProperty(required=False)
+    retry_count = db.IntegerProperty(required=True, default=0)
 
 
 class FeedConfig(webapp.RequestHandler):
@@ -53,15 +61,14 @@ class FeedConfig(webapp.RequestHandler):
             feed = ContentFeed(url=feed_url, owner=users.get_current_user())
         except db.BadValueError, e:
             template_values = {
-                "failure": str(e)
-            }
+                "failure": str(e)}
             path = os.path.join(os.path.dirname(__file__),
                 'templates/blog-new.html')
             self.response.out.write(template.render(path, template_values))
             return
 
         feed.put()
-        logging.info("Added new feed: \"%s\"", feed_url)
+        logging.info("Added new feed: \"%s\"", feed.url)
         self.redirect("/blogs/admin/new?success=1")
 
 
@@ -111,96 +118,82 @@ class FeedProducer(webapp.RequestHandler):
         query = ContentFeed.all()
         query.filter("last_update <", current_datetime - update_interval)
 
-        for feed in query:
-            # get the member's OAuth token and secret
+        if query.count() == 0:
+            logging.debug("No entries to queue")
+        else:
+            for feed in query:
+                # get the member's OAuth token and secret
 
-            query = Credential.all().filter("owner =", feed.owner)
-            credentials = query.fetch(limit=10)
-            if len(credentials) != 1:
-                logging.error("Feed owner doesn't have credentials, skipping")
-                continue
-            cred = credentials[0]
+                last_update = timeutils.add_utc_tzinfo(feed.last_update)
+                feed_consumer_params = {
+                    "feed_key": feed.key(),
+                    "owner_id": feed.owner.user_id()}
 
-            last_update = timeutils.add_utc_tzinfo(feed.last_update)
-            feed_consumer_params = {
-                "url": feed.url,
-                "key": cred.token_key,
-                "secret": cred.token_secret}
-
-            try:
-                taskqueue.add(url="/blogs/feed/consumer",
-                    params=feed_consumer_params)
-                logging.info("Queued feed: \"%s\" %s" %
-                    (feed_consumer_params["url"], last_update.ctime()))
-            except taskqueue.Error:
-                logging.error("Unable to queue feed: \"%s\"",
-                    feed_consumer_params["url"])
-                return
+                try:
+                    taskqueue.add(url="/blogs/feed/consumer",
+                        params=feed_consumer_params)
+                    logging.info("Queued feed: \"%s\" %s" %
+                        (feed.url, last_update.ctime()))
+                except taskqueue.Error:
+                    logging.error("Unable to queue feed: \"%s\"",
+                        feed.url)
+                    return
 
 
 class FeedConsumer(webapp.RequestHandler):
 
     def post(self):
         """
-        Use feedparser to queue any blog posts from the given URL since
+        Use feedparser to save any blog posts from the given URL since
         the given timestamp
         """
 
-        feed_url = self.request.get("url", None)
-        if not feed_url:
+        feed_key = self.request.get("feed_key", None)
+        if not feed_key:
             logging.error("No feed URL provided")
             return
-        key = self.request.get("key", None)
-        if not key:
-            logging.error("Feed missing OAuth key")
-            return
-        secret = self.request.get("secret", None)
-        if not secret:
-            logging.error("Feed missing OAuth secret")
-            return
 
-        query = ContentFeed.all()
-        query.filter("url =", feed_url)
-        feed = query.get()
+        feed = ContentFeed.get(feed_key)
 
         if not feed:
-            logging.error("Couldn't find feed in the DB \"%s\"" % feed_url)
+            logging.error("Couldn't find feed in the DB \"%s\"" % feed_key)
+            return
 
-        logging.info("Dequeued feed: \"%s\"" % (feed_url))
+        logging.info("Dequeued feed: \"%s\"" % (feed.url))
 
         last_update = timeutils.add_utc_tzinfo(feed.last_update)
         logging.debug("Last processed feed on: %s" % last_update.ctime())
 
         try:
-            result = urlfetch.fetch(feed_url)
+            result = urlfetch.fetch(feed.url)
         except urlfetch.Error, e:
             logging.error("Exception when fetching feed: \"%s\" %s" %
-                (feed_url, e))
+                (feed.url, e))
             return
 
         if result.status_code != 200:
             logging.error("Unable to fetch feed: (%s) \"%s\"" %
-             (result.status_code, feed_url))
+             (result.status_code, feed.url))
             return
 
         current_datetime = timeutils.now_utc()
 
         d = feedparser.parse(result.content)
         if not d.feed:
-            logging.error("Unable to parse feed: \"%s\"" % feed_url)
+            logging.error("Unable to parse feed: \"%s\"" % feed.url)
             return
 
         for entry in d.entries:
-            if not entry.has_key("updated_parsed"):
+            if not "updated_parsed" in entry:
                 logging.warning("Entry doesn't have an updated date, skipping")
                 continue
-            if not entry.has_key("title"):
+            if not "title" in entry:
                 logging.warning("Entry is missing a title, skipping")
                 continue
-            if not entry.has_key("description"):
+            if not "description" in entry:
                 logging.warning("Entry is missing a description, skipping")
                 continue
-            if not entry.has_key("link"):
+            if not "link" in entry:
                 logging.warning("Entry is missing a link, skipping")
                 continue
 
@@ -211,12 +204,12 @@ class FeedConsumer(webapp.RequestHandler):
                     (entry.title, entry_datetime.ctime()))
                 break
 
-            if entry.has_key("content") and len(entry.content) > 0:
+            if "content" in entry and len(entry.content) > 0:
                 entry_content = entry.content[0].value
             else:
                 entry_content = ""
 
-            if entry.has_key("description"):
+            if "description" in entry:
                 entry_description = entry.description
             else:
                 entry_description = ""
@@ -227,29 +220,47 @@ class FeedConsumer(webapp.RequestHandler):
             else:
                 body = entry_description
 
-            blog_consumer_params = {
-                "title": entry.title,
-                "description": '%s\n\n<a href="%s">Original post</a>' %
-                    (body, entry.link),
-                "publishTime": entry_datetime.isoformat(),
-                "key": key,
-                "secret": secret,
-            }
+            body = '%s\n\n<a href="%s">Original post</a>' % (body, entry.link)
 
-            try:
-                taskqueue.add(url="/blogs/entry/consumer",
-                    params=blog_consumer_params)
-            except taskqueue.Error, e:
-                logging.error("Unable to queue entry: %s \"%s\"\n \"%s\"" %
-                    (str(e), blog_consumer_params["title"],
-                    blog_consumer_params["description"]))
-                continue
+            # Save the entry to the DB
+            db_entry = ContentEntry(title=entry.title, description=body,
+                owner=feed.owner)
+            db_entry.put()
 
-            logging.info("Queued: \"%s\" @ %s" % (entry.title,
+            logging.info("Saved entry: \"%s\" @ %s" % (entry.title,
                 entry_datetime.ctime()))
 
         feed.last_update = current_datetime
         feed.put()
+
+
+class EntryProducer(webapp.RequestHandler):
+
+    def get(self):
+        """
+        Query the DB and queue any entries that haven't been uploaded yet
+        """
+
+        query = ContentEntry.all()
+        query.filter("pub_date <", timeutils.now_utc())
+        query.filter("ning_id =", None)
+
+        if query.count() == 0:
+            logging.debug("No entries to queue")
+        else:
+            for entry in query:
+
+                entry_consumer_params = {
+                    "entry_key": entry.key()}
+                try:
+                    taskqueue.add(url="/blogs/entry/consumer",
+                        params=entry_consumer_params)
+                    logging.info("Queued entry: \"%s\" %s" %
+                        (entry.title, entry.pub_date.ctime()))
+                except taskqueue.Error:
+                    logging.error("Unable to queue feed: \"%s\"",
+                        entry_consumer_params["url"])
+                    return
 
 
 class EntryConsumer(webapp.RequestHandler):
@@ -257,41 +268,51 @@ class EntryConsumer(webapp.RequestHandler):
     def post(self):
         """Publish the given blog post to the configured Ning Network"""
 
-        timestamp = self.request.get("publishTime", None)
-        if not timestamp:
-            logging.error("No timestamp provided")
+        entry_key = self.request.get("entry_key", None)
+        if not entry_key:
+            logging.warn("No entry_key provided")
             return
 
-        publish_time = iso8601.parse_date(timestamp)
+        entry = ContentEntry.get(entry_key)
+        if not entry:
+            logging.warn("Entry not found in the DB: %s" % entry_key)
+            return
 
-        title = self.request.get("title", None)
-        description = self.request.get("description", None)
-        key = self.request.get("key", None)
-        secret = self.request.get("secret", None)
+        logging.info("Dequeued: \"%s\" %s" % (entry.title,
+            entry.pub_date.ctime()))
 
-        logging.info("Dequeued: \"%s\" %s" % (title, publish_time.ctime()))
+        credentials = Credential.all().filter("owner =", entry.owner).get()
+        if not credentials:
+            logging.warn("No credentials found for %s" % entry.owner)
+            return
+
 
         blog_parts = {
-            "title": title.encode("utf-8"),
-            "description": description.encode("utf-8"),
+            "title": entry.title.encode("utf-8"),
+            "description": entry.description.encode("utf-8"),
             # "publishTime": unicode(publish_time.isoformat()).encode("utf-8")
         }
 
-        token = oauth.Token(key=key, secret=secret)
+        token = oauth.Token(key=credentials.token_key,
+            secret=credentials.token_secret)
         ning_client = config.new_client(token)
 
         try:
-            ning_client.post("BlogPost", blog_parts)
+            response = ning_client.post("BlogPost", blog_parts)
         except NingError, e:
             logging.error("Unable to upload: %s" % str(e))
-            raise
+            return
 
+        entry.delete()
+
+        logging.info("Uploaded blog post: %s" % response['id'])
 
 
 def main():
     application = webapp.WSGIApplication([
             ('/blogs/feed/producer', FeedProducer),
             ('/blogs/feed/consumer', FeedConsumer),
+            ('/blogs/entry/producer', EntryProducer),
             ('/blogs/entry/consumer', EntryConsumer),
             ('/blogs/admin/new', FeedConfig),
             ('/blogs/admin/view', FeedBrowser),
