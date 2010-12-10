@@ -132,7 +132,7 @@ class FeedProducer(webapp.RequestHandler):
                 try:
                     taskqueue.add(url="/blogs/feed/consumer",
                         params=feed_consumer_params)
-                    logging.info("Queued feed: \"%s\" %s" %
+                    logging.debug("Queued feed: \"%s\" %s" %
                         (feed.url, last_update.ctime()))
                 except taskqueue.Error:
                     logging.error("Unable to queue feed: \"%s\"",
@@ -159,7 +159,7 @@ class FeedConsumer(webapp.RequestHandler):
             logging.error("Couldn't find feed in the DB \"%s\"" % feed_key)
             return
 
-        logging.info("Dequeued feed: \"%s\"" % (feed.url))
+        logging.debug("Dequeued feed: \"%s\"" % (feed.url))
 
         last_update = timeutils.add_utc_tzinfo(feed.last_update)
         logging.debug("Last processed feed on: %s" % last_update.ctime())
@@ -167,12 +167,12 @@ class FeedConsumer(webapp.RequestHandler):
         try:
             result = urlfetch.fetch(feed.url)
         except urlfetch.Error, e:
-            logging.error("Exception when fetching feed: \"%s\" %s" %
+            logging.warn("Exception when fetching feed: \"%s\" %s" %
                 (feed.url, e))
             return
 
         if result.status_code != 200:
-            logging.error("Unable to fetch feed: (%s) \"%s\"" %
+            logging.warn("Unable to fetch feed: (%s) \"%s\"" %
              (result.status_code, feed.url))
             return
 
@@ -255,7 +255,7 @@ class EntryProducer(webapp.RequestHandler):
                 try:
                     taskqueue.add(url="/blogs/entry/consumer",
                         params=entry_consumer_params)
-                    logging.info("Queued entry: \"%s\" %s" %
+                    logging.debug("Queued entry: \"%s\" %s" %
                         (entry.title, entry.pub_date.ctime()))
                 except taskqueue.Error:
                     logging.error("Unable to queue feed: \"%s\"",
@@ -278,12 +278,12 @@ class EntryConsumer(webapp.RequestHandler):
             logging.warn("Entry not found in the DB: %s" % entry_key)
             return
 
-        logging.info("Dequeued: \"%s\" %s" % (entry.title,
+        logging.debug("Dequeued entry: \"%s\" %s" % (entry.title,
             entry.pub_date.ctime()))
 
         credentials = Credential.all().filter("owner =", entry.owner).get()
         if not credentials:
-            logging.warn("No credentials found for %s" % entry.owner)
+            logging.error("No credentials found for %s" % entry.owner)
             return
 
 
