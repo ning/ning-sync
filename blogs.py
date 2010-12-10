@@ -250,6 +250,14 @@ class EntryProducer(webapp.RequestHandler):
         else:
             for entry in query:
 
+                # Backoff method for trying to upload
+                next_try = timeutils.add_utc_tzinfo(entry.pub_date +
+                    timedelta(minutes=entry.retry_count**2))
+                if next_try > timeutils.now_utc():
+                    logging.debug("Too soon to retry, will try again at %s" %
+                        next_try.ctime())
+                    continue
+
                 entry_consumer_params = {
                     "entry_key": entry.key()}
                 try:
@@ -277,6 +285,9 @@ class EntryConsumer(webapp.RequestHandler):
         if not entry:
             logging.warn("Entry not found in the DB: %s" % entry_key)
             return
+
+        entry.retry_count += 1
+        entry.put()
 
         logging.debug("Dequeued entry: \"%s\" %s" % (entry.title,
             entry.pub_date.ctime()))
