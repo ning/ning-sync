@@ -314,9 +314,10 @@ class EntryConsumer(webapp.RequestHandler):
             logging.error("Unable to upload: %s" % str(e))
             return
 
-        entry.delete()
+        logging.info("Uploaded blog post: \"%s\" %s" % (entry.title,
+            response['id']))
 
-        logging.info("Uploaded blog post: %s" % response['id'])
+        entry.delete()
 
 
 def main():
