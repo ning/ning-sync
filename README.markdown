@@ -1,17 +1,18 @@
 Overview
 ========
 
-Ning Sync is a [Google App Engine](http://code.google.com/appengine/) project
-that allows syncing of external content into your Ning Network. The server
-consumes [web feeds](http://en.wikipedia.org/wiki/Web_feeds) (aka RSS, ATOM
-feeds), making it platform agnostic. One member can import content from their
-WordPress blog, while another imports content Blogger.
+Ning Sync is a [Google App Engine](http://code.google.com/appengine/)
+application that allows syncing of external content into your Ning Network.
+The server consumes [web feeds](http://en.wikipedia.org/wiki/Web_feeds) (aka
+RSS, ATOM feeds), making it platform agnostic. One member can import content
+from their WordPress blog, while another imports content from Blogger.
 
 For example, let's say your Ning Network is about California politics and many
-of your members write blogs that are relevant to the network. Each member of
+of your members have blogs that are relevant to the network. Each member of
 the network can create an account on your Ning Sync server and have their blog
-posts imported into your Ning Network under their account. To other members,
-it will look as if they originally published the content on your network.
+posts imported into your Ning Network under their account, automatically. To
+other members, it will look as if they originally published the content on
+your network.
 
 Currently it supports the following features:
 
@@ -43,17 +44,26 @@ talk to your Ning Network. You need to fill in the following values in
 Change the `application` variable in `app.yaml` to match your App Engine
 account.
 
-Once configured, you can test the application using the [Google App Engine
-Launcher](http://code.google.com/appengine/downloads.html). Once tested you
+Once configured, you can test the application using [Google App Engine
+Launcher](http://code.google.com/appengine/downloads.html). After testing you
 can deploy to Google App Engine.
+
 
 Using
 =====
 
-To setup first you need to click the *Add your credentials* link on the main
+To setup you first need to click the *Add your credentials* link on the main
 page of the application. Any member type can setup an account on the server.
 
 Once authorized, each member can click the *Add a feed* link. Once added, the
 feed will be checked for new content every hour. When new content is available
 it will automatically be uploaded to your Ning Network under the account the
 member setup in the first step.
+
+
+Contributing
+============
+
+Ning Sync is licensed under the Apache License, Version 2.0. We welcome
+contributions and feedback via the [Ning Sync GitHub project
+page](https://github.com/ning/ning-sync).
