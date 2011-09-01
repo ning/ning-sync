@@ -299,7 +299,8 @@ class EntryConsumer(webapp.RequestHandler):
 
         credentials = Credential.all().filter("owner =", entry.owner).get()
         if not credentials:
-            logging.error("No credentials found for %s" % entry.owner)
+            logging.warn("No credentials found for %s, deleting" % entry.owner)
+            entry.delete()
             return
 
 
