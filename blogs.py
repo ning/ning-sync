@@ -251,6 +251,11 @@ class EntryProducer(webapp.RequestHandler):
             for entry in query:
 
                 # Backoff method for trying to upload
+                if entry.retry_count > 100:
+                    logging.info("Too many retries, deleting \"%s\"" %
+                        entry.title)
+                    entry.delete()
+                    continue
                 next_try = timeutils.add_utc_tzinfo(entry.pub_date +
                     timedelta(minutes=entry.retry_count**2))
                 if next_try > timeutils.now_utc():
