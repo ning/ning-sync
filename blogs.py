@@ -35,6 +35,7 @@ class ContentEntry(db.Model):
     owner = db.UserProperty(required=True)
     title = db.StringProperty(required=True)
     description = db.TextProperty(required=True)
+    link = db.LinkProperty(required=True)
     ning_id = db.StringProperty(required=False)
     retry_count = db.IntegerProperty(required=True, default=0)
 
@@ -224,7 +225,7 @@ class FeedConsumer(webapp.RequestHandler):
 
             # Save the entry to the DB
             db_entry = ContentEntry(title=entry.title, description=body,
-                owner=feed.owner)
+                owner=feed.owner, link=entry.link)
             db_entry.put()
 
             logging.info("Saved entry: \"%s\" @ %s" % (entry.title,
@@ -307,6 +308,7 @@ class EntryConsumer(webapp.RequestHandler):
         blog_parts = {
             "title": entry.title.encode("utf-8"),
             "description": entry.description.encode("utf-8"),
+            "canonicalUrl": entry.link.encode("utf-8"),
             # "publishTime": unicode(publish_time.isoformat()).encode("utf-8")
         }
 
